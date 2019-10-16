@@ -7,7 +7,20 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = [0] *256
+        self.reg = [0] * 8
+        self.pc = 0
+        self.SP = 247
+
+    def ram_read(self, MAR):
+        "should accept the address to read and return the value stored"
+        #MAR contains the address that is being read or written
+        return self.ram[MAR]
+
+    def ram_write(self, MAR, MDR):
+        "should accept a value to write, and the address to write it to."
+        #Also remember, MDR is the data that was read or the data to write
+        self.ram[MAR] = MDR
 
     def load(self):
         """Load a program into memory."""
@@ -36,6 +49,8 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
+        elif op == 'MUL':
+            self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -62,4 +77,31 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        HLT = 0b00000001
+        LDI = 0b10000010
+        PRN = 0b01000111
+        PUSH = 0b01000101
+        POP = 0b01000110
+        MUL = 0b10100010
+        running = True
+        while running:
+            #this comes right out of the instructions about reading the memory
+            #address stored in the register 'pc' and storing it in th 'ir'
+            IR = self.ram[self.pc]
+            #from the instructions it's saying to using the ram_read() with pc+1, pc+2 and
+            # operand a and b
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+            #If the IR is halted, it wont be running
+            if IR == HLT:
+                running = False
+            elif IR == LDI:
+                self.reg[operand_a] = operand_b
+                self.pc += 3
+            #elif print equals IR
+            elif IR == PRN:
+                print(self.reg[operand_a])
+                self.pc += 2
+            else:
+                print('Halting the program')
+                running = False
