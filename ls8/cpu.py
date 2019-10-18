@@ -10,7 +10,8 @@ class CPU:
         self.ram = [0] *256
         self.reg = [0] * 8
         self.pc = 0
-        self.SP = 247
+        self.reg[7] = 255
+        self.SP = 0x07
 
     def ram_read(self, MAR):
         "should accept the address to read and return the value stored"
@@ -29,19 +30,22 @@ class CPU:
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
+        with open(sys.argv[1]) as file: #open file in the second sys argv spot
+            for line in file:
+                if line[0] !='#' and line != '\n': #if not a comment or a new line
+                    self.ram[address] = int(line[0:8], 2)
+                    address += 1
+                file.closed #close file
+                            
 
 
     def alu(self, op, reg_a, reg_b):
@@ -83,7 +87,12 @@ class CPU:
         PUSH = 0b01000101
         POP = 0b01000110
         MUL = 0b10100010
+        CALL = 0b01010000
+        RET = 0b00010001  
+        ADD = 0b10100000
+
         running = True
+
         while running:
             #this comes right out of the instructions about reading the memory
             #address stored in the register 'pc' and storing it in th 'ir'
@@ -102,6 +111,31 @@ class CPU:
             elif IR == PRN:
                 print(self.reg[operand_a])
                 self.pc += 2
+            elif IR == ADD:
+                self.alu('ADD', operand_a, operand_b)
+                self.pc =+ 3
+            elif IR == MUL:
+                self.alu('MUL', operand_a, operand_b)
+                self.pc += 3
+            elif IR == PUSH:
+                self.SP -= 1
+                self.ram[self.SP] = self.reg[operand_a]
+                self.pc += 2
+            elif IR == POP:
+                self.reg[operand_a] = self.ram[self.SP]
+                self.SP += 1
+                self.pc += 2
+            elif IR == CALL:
+                #Push the return address on the stack
+                return_address = self.pc + 2
+                self.reg[self.SP] -= 1
+                self.ram[self.reg[self.SP]] = return_address
+                self.pc = self.reg[operand_a]
+            elif IR == RET:
+                #Return from subroutine
+                return_address = self.ram[self.reg[self.SP]]
+                self.reg[self.SP] += 1
+                self.pc = return_address
             else:
                 print('Halting the program')
                 running = False
